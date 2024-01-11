@@ -1,0 +1,100 @@
+---
+title: "Tutorial 2 - Reproducible Workflows"
+author: "Jimmy Luc"
+date: today
+date-format: "MM/DD/YYYY"
+format: pdf
+---
+
+```{r}
+#### Workspace setup ####
+install.packages("tidyverse", repos = "http://cran.us.r-project.org")
+install.packages("janitor", repos = "http://cran.us.r-project.org")
+install.packages("opendatatoronto", repos = "http://cran.us.r-project.org")
+
+library("janitor")
+library("knitr")
+library("lubridate")
+library("opendatatoronto")
+library("tidyverse")
+```
+
+```{r}
+#### Read in the data ####
+# retrieve package id
+dataset <-
+  search_packages("fire incidents") |> first()
+
+# retrieve resource id
+dataset <-
+  list_package_resources(dataset$id) |> first()
+
+# retrieve dataset
+raw_fire_incidents_data <- get_resource(dataset$id)
+
+write_csv(
+  x = raw_fire_incidents_data,
+  file = "toronto_fire_incidents.csv"
+)
+```
+
+```{r}
+#### Basic cleaning ####
+raw_fire_incidents_data <-
+  read_csv(
+    file = "toronto_fire_incidents.csv",
+    show_col_types = FALSE
+  )
+
+# clean the names
+cleaned_fire_incidents_data <-
+  clean_names(raw_fire_incidents_data)
+
+# select the column of interest
+cleaned_fire_incidents_data <-
+  cleaned_fire_incidents_data |>
+  select(
+    tfs_alarm_time
+  )
+
+# filter for data in 2022
+cleaned_fire_incidents_data <- 
+  cleaned_fire_incidents_data[format(cleaned_fire_incidents_data$tfs_alarm_time, "%Y") == "2022", ]
+
+# ensure dates are in descending order
+cleaned_fire_incidents_data <-
+  cleaned_fire_incidents_data[order(as.Date(cleaned_fire_incidents_data$tfs_alarm_time, format="%Y/%m/%d")), ]
+
+# format date
+cleaned_fire_incidents_data$tfs_alarm_time <-
+  as.factor(
+    paste(
+      cleaned_fire_incidents_data$tfs_alarm_time |> month(),
+      cleaned_fire_incidents_data$tfs_alarm_time |> year(),
+      sep="/"
+      )
+    )
+
+# save cleaned dataset
+write_csv(
+  x = cleaned_fire_incidents_data,
+  file = "cleaned_fire_incidents_data.csv"
+)
+```
+
+```{r}
+#### Read in the data ####
+cleaned_fire_incidents_data <-
+  read_csv(
+    file = "cleaned_fire_incidents_data.csv",
+    show_col_types = FALSE
+  )
+
+# generate graph
+# Graph depicts the total number of fire incidents each month in Toronto, 2022
+cleaned_fire_incidents_data |>
+  ggplot(aes(factor(tfs_alarm_time, levels = unique(tfs_alarm_time)))) +
+  geom_bar() +
+  labs(x = "Month of 2022", y = "Number of Incidents", title = "Toronto Fire Incidents in 2022 per Month") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
