@@ -8,7 +8,5 @@ Introduction to data analysis with a focus on regression. Initial Examination of
 
 ## Authors
 
-Contributors names and contact info
-
 Jimmy Luc
 jimmy.luc@mail.utoronto.ca
